@@ -82,6 +82,35 @@ Serverless Architecture
 -   Drawback: strong vendor lock-in.
 ## Composition Over Inheritance
 Composition over Inheritance means assembling classes from smaller, reusable components with specific responsibilities, rather than extending behavior through inheritance hierarchies
+This project explored a contract-first approach using OpenAPI, NSwag, and related tooling to design the API schema and generate controller interfaces and models directly from the contract.
+
+While this approach can work well in mature environments, in practice the available generation tools proved insufficiently stable for this scope, even with a relatively simple schema. Generated controllers and models frequently required manual modification to function correctly or to align with project conventions, which reduced the practical value of code generation.
+
+In particular, the generated output tended to rely heavily on inheritance-based patterns, making it difficult to cleanly separate:
+
+dynamically generated code that changes as the contract evolves, and
+
+handwritten controller logic that should remain stable.
+
+Without a clear composition-over-inheritance model to isolate generated artifacts from application logic, contract updates risked cascading changes across controllers, undermining SOLID principles and increasing maintenance overhead.
+
+Contract-first workflows can be highly effective when these patterns have been well-established and tooling has been standardized. However, for the scope of this exercise, the additional complexity and ongoing customization required did not justify the investment. The project therefore favors explicit controller definitions with Swagger-first documentation, preserving clarity, stability, and maintainability while still exposing a complete OpenAPI contract for consumers.
+
+Although this project does not rely on generated controller interfaces, the resulting controller design remains SOLID-aligned. The API contract is still expressed in a single, well-defined place through shared request and response models, and those models are reused consistently across endpoints.
+
+Changes to the contract are therefore localized and explicit, rather than being distributed across generated and handwritten code. This preserves the benefits of clarity and maintainability without introducing tightly coupled inheritance hierarchies or fragile regeneration workflows.
+
+By favoring explicit controller actions backed by shared models, the implementation maintains:
+
+a clear separation of concerns,
+
+a single source of truth for request and response shapes, and
+
+predictable evolution of the API surface as requirements change.
+
+This approach trades automated controller generation for intentional, readable API code, while still producing a complete and accurate OpenAPI contract for documentation, testing, and client generation.
+
+
 ## Previously Used Design Pattern
 I applied the Strangler Pattern, incrementally replacing a legacy website by rewriting its components as microservices with the goal of eventually retiring the old page.
 Ultimately, this approach created technical debt that was difficult to manage. Once the microservices were running, there was less urgency to migrate the hosting page to newer frameworks. As a result, older code persisted longer than expected, and in hindsight a full rewrite might have eliminated the legacy code faster and more cleanly.

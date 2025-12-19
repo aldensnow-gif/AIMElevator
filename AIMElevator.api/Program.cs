@@ -1,23 +1,45 @@
-using AIMElevator.api.CallToFloor;
-using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
-    .AddControllers()
-    .ConfigureApplicationPartManager(apm =>
-    {
-        apm.ApplicationParts.Clear(); // Remove auto-generated controllers (e.g. OpenAPI/NSwag) to avoid endpoint conflicts; we then add only this assembly's controllers. Consider generating server interfaces from the OpenAPI contract (NSwag) to enforce the API contract.
-        apm.ApplicationParts.Add(new AssemblyPart(typeof(Program).Assembly));
-    });
-
-builder.Services.AddScoped<ICallToFloorHandler, CallToFloorHandler>();
+    .AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+        c.IncludeXmlComments(xmlPath);
+});
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 app.UseHttpsRedirection();
 app.UseAuthorization();
+app.UseSwagger();
 app.MapControllers();
-app.Run();
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    var urls = string.Join(", ", app.Urls);
 
+    logger.LogInformation("Application running at: {Urls}", urls);
+
+    if (app.Environment.IsDevelopment())
+    {
+        foreach (var url in app.Urls)
+        {
+            logger.LogInformation("Swagger UI available at: {SwaggerUrl}/swagger", url);
+            logger.LogInformation("OpenAPI contract: {SwaggerJson}", $"{url}/swagger/v1/swagger.json");
+        }
+    }
+});
+app.Run();
